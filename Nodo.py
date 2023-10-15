@@ -1,5 +1,8 @@
 import os, math
 import struct
+import numpy as np
+from scipy import signal
+from Correlacion import Correlacion
 
 
 class Nodo:
@@ -36,6 +39,8 @@ class Nodo:
         self.gyroscopeX = []
         self.gyroscopeY = []
         self.gyroscopeZ = []
+
+        self.correlaciones = {}
 
         #Las muestras se guardan de a 14 bytes
         self.BYTES_MUESTRA = 14
@@ -77,30 +82,36 @@ class Nodo:
             return
             
         # toma bytes de a dos valores uint8 + uint8 -> int16
-        listaMuestras = struct.unpack('7h', muestra)
+        listaMuestraLeida = struct.unpack('7h', muestra)
 
         # cada linea leida tiene las muestras accelerationX accelerationY accelerationZ temp gyroscopeX gyroscopeY gyroscopeZ
         
-        self.accelerationX.append(listaMuestras[self.accelerationX_index])
-        self.accelerationY.append(listaMuestras[self.accelerationY_index])
-        self.accelerationZ.append(listaMuestras[self.accelerationZ_index])
+        self.accelerationX.append(listaMuestraLeida[self.accelerationX_index])
+        self.accelerationY.append(listaMuestraLeida[self.accelerationY_index])
+        self.accelerationZ.append(listaMuestraLeida[self.accelerationZ_index])
 
-        self.temp.append(listaMuestras[self.temp_index]/340 + 36.53)
+        self.temp.append(listaMuestraLeida[self.temp_index]/340 + 36.53)
 
-        self.gyroscopeX.append(listaMuestras[self.gyroscopeX_index])
-        self.gyroscopeY.append(listaMuestras[self.gyroscopeY_index])
-        self.gyroscopeZ.append(listaMuestras[self.gyroscopeZ_index])
+        self.gyroscopeX.append(listaMuestraLeida[self.gyroscopeX_index])
+        self.gyroscopeY.append(listaMuestraLeida[self.gyroscopeY_index])
+        self.gyroscopeZ.append(listaMuestraLeida[self.gyroscopeZ_index])
 
     def cambiarEscalaGyroscopo(self, escala) -> None:
-        self.gyroscopeX = [ x/escala for x in self.gyroscopeX]
-        self.gyroscopeY = [ x/escala for x in self.gyroscopeY]
-        self.gyroscopeZ = [ x/escala for x in self.gyroscopeZ]
+        self.gyroscopeX = [ x*escala for x in self.gyroscopeX]
+        self.gyroscopeY = [ x*escala for x in self.gyroscopeY]
+        self.gyroscopeZ = [ x*escala for x in self.gyroscopeZ]
 
-    def cambiarEscalaAcelerometro(self, escala) -> None:
-        self.accelerationX = [ x/escala for x in self.accelerationX]
-        self.accelerationY = [ x/escala for x in self.accelerationY]
-        self.accelerationZ = [ x/escala for x in self.accelerationZ]
+    def cambiarEscalaAcelerometro(self, escala, nombreNodo) -> None:
+        if self.nodo == nombreNodo or nombreNodo == "all":
+            self.accelerationX = [ x*escala for x in self.accelerationX]
+            self.accelerationY = [ x*escala for x in self.accelerationY]
+            self.accelerationZ = [ x*escala for x in self.accelerationZ]
     
+    def quitarMediaAceleracion(self) -> None:
+        self.accelerationX = self.accelerationX - np.mean(self.accelerationX)
+        self.accelerationY = self.accelerationY - np.mean(self.accelerationY)
+        self.accelerationZ = self.accelerationZ - np.mean(self.accelerationZ)
+
     def cantidadMuestras(self,fileName) -> int:
         # numero de muestras tomadas
         cantMuestras = math.ceil(os.fstat(fileName.fileno()).st_size / self.BYTES_MUESTRA)
@@ -116,3 +127,17 @@ class Nodo:
                 cantidad += 1
         return cantidad
     
+    def crearCorrelacion(self, señal, nombre):
+        def crearImpulso(largo, ordenFiltro, wc ):
+            imp = signal.unit_impulse(largo)
+            b, a = signal.butter(ordenFiltro, wc)
+            return signal.lfilter(b, a, imp)
+
+        largo = 125
+        ordenFiltro = 4
+        wc = 6/largo
+
+        if nombre == 'impulso':
+            señal = crearImpulso(largo, ordenFiltro, wc)
+
+        self.correlaciones[nombre] = Correlacion(self.accelerationX, señal)
