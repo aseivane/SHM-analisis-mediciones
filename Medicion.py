@@ -66,50 +66,57 @@ class Medicion:
             self.listaNodos[index].crearCorrelacion(impulso, "impulso")
             
     def graficarCorrelacion(self):
+        def histograma(axHist):
+            axHist.set_title('Histograma')
+            listaDeltas = []
+            matrixDeltas = [] 
+            for index in range(self.cantNodos):
+                nodo = self.listaNodos[index]
+                for key in nodo.correlaciones.keys():
+                    matrixDeltas.insert(index, nodo.correlaciones[key].localMaxs)
+
+            for nodo1 in range(self.cantNodos):
+                for nodo2 in range(self.cantNodos):
+                    if nodo1 != nodo2:
+                        diferenciaLags = matrixDeltas[nodo1] - matrixDeltas[nodo2]
+                        listaDeltas.append( diferenciaLags)
+
+            listaDeltas = np.array(listaDeltas)
+            listaDeltas = listaDeltas[listaDeltas >= 0]
+            axHist.hist(listaDeltas,bins=[0, 1, 2, 3])
+
+        def graficoTemporal(ax_nodos, ax_corr, ax_lag):
+            ax_nodos.set_title('Nodos')
+            ax_corr.set_title('Correlacion')
+            ax_lag.set_title('Lag')
+
+            for nodo in self.listaNodos: 
+                ax_nodos.plot(nodo.accelerationY, label= nodo.nodo)
+                for key in nodo.correlaciones.keys():
+
+                    correlacionActual = nodo.correlaciones[key]
+
+                    ax_corr.plot(correlacionActual.correlacion, 
+                                label=nodo.nodo+'-'+key)
+                    
+                    ax_lag.plot(correlacionActual.lags, 
+                                correlacionActual.correlacion,
+                                label=nodo.nodo+'-'+key)
+                    
+                    ax_lag.plot(correlacionActual.lags[correlacionActual.localMaxs],
+                                correlacionActual.correlacion[correlacionActual.localMaxs], 'o')
+
+
+            ax_nodos.legend()
+            ax_corr.legend()
+            ax_lag.legend()
+
         fig, ( ax_nodos, ax_corr, ax_lag) = plt.subplots(3, 1, sharex=True)
-        
-        ax_nodos.set_title('Nodos')
-        ax_corr.set_title('Correlacion')
-        ax_lag.set_title('Lag')
-
-        for nodo in self.listaNodos: 
-            ax_nodos.plot(nodo.accelerationY, label= nodo.nodo)
-            for key in nodo.correlaciones.keys():
-
-                correlacionActual = nodo.correlaciones[key]
-
-                ax_corr.plot(correlacionActual.correlacion, 
-                             label=nodo.nodo+'-'+key)
-                
-                ax_lag.plot(correlacionActual.lags, 
-                            correlacionActual.correlacion,
-                             label=nodo.nodo+'-'+key)
-                
-                ax_lag.plot(correlacionActual.lags[correlacionActual.localMaxs],
-                             correlacionActual.correlacion[correlacionActual.localMaxs], 'o')
-
-
-        ax_nodos.legend()
-        ax_corr.legend()
-        ax_lag.legend()
         fig.tight_layout()
 
+        graficoTemporal(ax_nodos, ax_corr, ax_lag)
+
         histFig, axHist = plt.subplots(figsize =(10, 7))
-        listaDeltas = []
-        matrixDeltas = [] 
-        for index in range(self.cantNodos):
-            nodo = self.listaNodos[index]
-            for key in nodo.correlaciones.keys():
-                matrixDeltas.insert(index, nodo.correlaciones[key].localMaxs)
-
-        for nodo1 in range(self.cantNodos):
-            for nodo2 in range(self.cantNodos):
-                if nodo1 != nodo2:
-                    diferenciaLags = matrixDeltas[nodo1] - matrixDeltas[nodo2]
-                    listaDeltas.append( diferenciaLags)
-
-        listaDeltas = np.array(listaDeltas)
-        listaDeltas = listaDeltas[listaDeltas >= 0]
-        axHist.hist(listaDeltas,bins=[0, 1, 2, 3])
+        histograma(axHist)
   
         plt.show()
