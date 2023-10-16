@@ -11,6 +11,7 @@ if __name__ == '__main__':
     escalaAceleracion = 9.806/16384
     medicion = Medicion(directory)
     medicion.cambiarEscalaAceleracion(-1,"nodo_94b97eda9150")
+    #medicion.cambiarEscalaAceleracion(-1)
     medicion.quitarMediaAceleracion()
     medicion.cambiarEscalaAceleracion(escalaAceleracion)
     

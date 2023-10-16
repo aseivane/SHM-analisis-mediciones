@@ -1,6 +1,7 @@
 from Nodo import Nodo
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 
@@ -65,36 +66,50 @@ class Medicion:
             self.listaNodos[index].crearCorrelacion(impulso, "impulso")
             
     def graficarCorrelacion(self):
-        fig, ( ax_nodos, ax_corr, ax_lag) = plt.subplots(3, 1)
+        fig, ( ax_nodos, ax_corr, ax_lag) = plt.subplots(3, 1, sharex=True)
         
         ax_nodos.set_title('Nodos')
+        ax_corr.set_title('Correlacion')
+        ax_lag.set_title('Lag')
+
         for nodo in self.listaNodos: 
             ax_nodos.plot(nodo.accelerationY, label= nodo.nodo)
             for key in nodo.correlaciones.keys():
-                ax_corr.plot(nodo.correlaciones[key].matrizCorrelacion, 
+
+                correlacionActual = nodo.correlaciones[key]
+
+                ax_corr.plot(correlacionActual.correlacion, 
                              label=nodo.nodo+'-'+key)
+                
+                ax_lag.plot(correlacionActual.lags, 
+                            correlacionActual.correlacion,
+                             label=nodo.nodo+'-'+key)
+                
+                ax_lag.plot(correlacionActual.lags[correlacionActual.localMaxs],
+                             correlacionActual.correlacion[correlacionActual.localMaxs], 'o')
+
 
         ax_nodos.legend()
         ax_corr.legend()
-        ax_corr.set_title('Correlacion')
-        #for correlacion in self.matrizCorrelacion:
-        #    ax_corr.plot(correlacion)
-
-        '''
-        lagsNodo_34ab958660d0, corrNodo_34ab958660d0, 'b-')
-        ax_corr.plot(lagsNodo_34ab958660d0[localMaxsNodo_34ab958660d0], corrNodo_34ab958660d0[localMaxsNodo_34ab958660d0], 'ro')
-
-        ax_corr.plot(lagsNodo_94b97eda9150, corrNodo_94b97eda9150, 'g-')
-        ax_corr.plot(lagsNodo_94b97eda9150[localMaxsNodo_94b97eda9150], corrNodo_94b97eda9150[localMaxsNodo_94b97eda9150], 'yo')
-
-
-        ax_corr.plot(lagsNodo_94b97eda2f1c, corrNodo_94b97eda2f1c, 'k-')
-        ax_corr.plot(lagsNodo_94b97eda2f1c[localMaxsNodo_94b97eda2f1c], corrNodo_94b97eda2f1c[localMaxsNodo_94b97eda2f1c], 'wo')
-
-        ax_corr.set_title('Correlacion cruzada con impulso')
-        ax_corr.set_xlabel('Lag')
-
-        
-        '''
+        ax_lag.legend()
         fig.tight_layout()
+
+        histFig, axHist = plt.subplots(figsize =(10, 7))
+        listaDeltas = []
+        matrixDeltas = [] 
+        for index in range(self.cantNodos):
+            nodo = self.listaNodos[index]
+            for key in nodo.correlaciones.keys():
+                matrixDeltas.insert(index, nodo.correlaciones[key].localMaxs)
+
+        for nodo1 in range(self.cantNodos):
+            for nodo2 in range(self.cantNodos):
+                if nodo1 != nodo2:
+                    diferenciaLags = matrixDeltas[nodo1] - matrixDeltas[nodo2]
+                    listaDeltas.append( diferenciaLags)
+
+        listaDeltas = np.array(listaDeltas)
+        listaDeltas = listaDeltas[listaDeltas >= 0]
+        axHist.hist(listaDeltas,bins=[0, 1, 2, 3])
+  
         plt.show()

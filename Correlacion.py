@@ -3,38 +3,17 @@ import numpy as np
 
 class Correlacion:
     def __init__(self,señal1, señal2) -> None:
-        self.matrizCorrelacion = []
-        self.matrizLags = []
+        self.Correlacion = []
+        self.Lags = []
         
-        self.matrizCorrelacion = signal.correlate( señal1, señal2 )
-        self.matrizCorrelacion /= np.max(self.matrizCorrelacion)
+        self.correlacion = signal.correlate( señal1, señal2 )
+        self.correlacion /= np.max(self.correlacion)
 
-        self.matrizLags = signal.correlation_lags( len(señal1), len(señal2) )
+        self.lags = signal.correlation_lags( len(señal1), len(señal2) )
+
+        self.localMaxs, _ = signal.find_peaks(self.correlacion, height=0.8)
+        self.localMaxsDist = np.diff(self.localMaxs)
         
-
-    def correlacionConImpulso(self, largo, ordenFiltro, wc):
-        def correlacionNodoImpulso():
-            #self.correlacionCon = 'impulso'
-            self.matrizCorrelacion = [ signal.correlate( nodo.accelerationY, self.impulso ) for nodo in self.medicion.listaNodos ]
-            self.matrizCorrelacion = [ corr/np.max(corr) for corr in self.matrizCorrelacion ] 
-
-            self.matrizLags = [ signal.correlation_lags( len(nodo.accelerationY), len(self.impulso) ) for nodo in self.medicion.listaNodos ]
-        
-
-        
-
-        self.impulso = self.crearImpulsoFiltrado(largo, ordenFiltro, wc)
-
-        correlacionNodoImpulso()
-
-        
-        graficoCorrelacionImpulso()
-        
-
-    def crearImpulsoFiltrado(self, largo, ordenFiltro, wc ):
-        imp = signal.unit_impulse(largo)
-        b, a = signal.butter(ordenFiltro, wc)
-        return signal.lfilter(b, a, imp)
 
 
     
