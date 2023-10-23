@@ -7,6 +7,8 @@ import numpy as np
 
 class Medicion:
     def __init__(self, dirName) -> None:
+        # archivo de un minuto con 500 mustras por segundo
+        self.muestrasPorArchivo = 30000 
         #si no existe el directorio, sale
         if not os.path.exists(dirName):
             print("ERROR: No existe el directorio")
@@ -27,6 +29,8 @@ class Medicion:
         self.agregarNodos()
 
         self.cantNodos = len(self.listaNodos)
+
+        self.largoMedicion = self.cantidadArchivos() * self.muestrasPorArchivo
         
     def agregarNodos(self) -> None:
         listaCarpetaNodos = next(os.walk(self.carpetaMedicion))[1]
@@ -39,9 +43,12 @@ class Medicion:
         
         cantidad = 0
         # Iterate directory
-        for archivo in self.dirName:
+        dirList = os.listdir(self.carpetaMedicion)
+        nodo1 = os.path.join(self.carpetaMedicion, dirList[0])
+        dirList = os.listdir(nodo1)
+        for archivo in dirList:
             # check if current path is a file
-            if os.path.isfile(os.path.join(self.dirName, archivo)):
+            if os.path.isfile(os.path.join(nodo1, archivo)):
                 cantidad += 1
         return cantidad
     
@@ -49,18 +56,12 @@ class Medicion:
         for index in range(self.cantNodos):
             self.listaNodos[index].cambiarEscalaAcelerometro(escala, nodo)
                            
-    
     def quitarMediaAceleracion(self) -> None:
         for index in range(self.cantNodos):
             self.listaNodos[index].quitarMediaAceleracion()
 
-    def correlacionConImpulso(self, largo, ordenFiltro, wc):
-        # def crearImpulso(largo, ordenFiltro, wc ):
-        #     imp = signal.unit_impulse(largo)
-        #     b, a = signal.butter(ordenFiltro, wc)
-        #     return signal.lfilter(b, a, imp)
-
-        # impulso = crearImpulso(largo, ordenFiltro, wc)
+    def correlacionConImpulso(self):
+        
         impulso = []
         for index in range(self.cantNodos):
             self.listaNodos[index].crearCorrelacion(impulso, "impulso")
@@ -91,7 +92,7 @@ class Medicion:
             ax_lag.set_title('Lag')
 
             for nodo in self.listaNodos: 
-                ax_nodos.plot(nodo.accelerationY, label= nodo.nodo)
+                ax_nodos.plot(nodo.accelerationX, label= nodo.nodo)
                 for key in nodo.correlaciones.keys():
 
                     correlacionActual = nodo.correlaciones[key]
@@ -116,7 +117,46 @@ class Medicion:
 
         graficoTemporal(ax_nodos, ax_corr, ax_lag)
 
-        histFig, axHist = plt.subplots(figsize =(10, 7))
+        histFig, axHist = plt.subplots(figsize =(8, 6))
         histograma(axHist)
   
+        plt.show()
+
+    def graficarTemporal(self,limiteInf, limiteSup):
+        #from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
+        #from mpl_toolkits.axes_grid1.inset_locator import mark_inset
+        def referenciaMuyChica() -> bool:
+            anchoRectangulo = limiteSup - limiteInf
+            anchoMinimo = 0.5 * self.largoMedicion
+            print(anchoMinimo)
+
+            if anchoRectangulo < anchoMinimo:
+                return True
+            
+            return False
+
+        fig, ( ax_t) = plt.subplots(figsize=[8,6])
+        ax_t.set_title('Respuesta temporal')
+        #axins = zoomed_inset_axes([10000, 4, 15000, 8], 6) # zoom = 6
+        
+        #if referenciaMuyChica():
+        #    limiteSup = limiteInf + 0.1 * self.largoMedicion
+
+        axins = ax_t.inset_axes(
+            [0.52, 0.55, 0.6, 0.4],
+            xlim=(limiteInf, limiteSup), xticklabels=[], yticklabels=[])
+        
+        axins.grid(True)
+
+        ax_t.set_ylim(bottom=-30,top = 50)
+
+
+        for nodo in self.listaNodos: 
+            ax_t.plot(nodo.accelerationX, label= nodo.nodo)
+            axins.plot(nodo.accelerationX)
+
+        ax_t.indicate_inset_zoom(axins, edgecolor="black")
+
+        ax_t.legend(loc='upper left')
+
         plt.show()
