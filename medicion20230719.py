@@ -1,10 +1,10 @@
 from Medicion import Medicion
+import numpy as np
 
 
 if __name__ == '__main__':
-
-    limiteInf = 0
-    limiteSup = 300
+    x_limiteInf = 449300/30000
+    x_limiteSup = 449500/30000
     directory = '/Users/aseivane/Documents/SHM/SHM-analisis-mediciones/mediciones/medicion_20230719-015/'
 
     escalaAceleracion = 9.806/16384
@@ -16,4 +16,9 @@ if __name__ == '__main__':
     medicion.correlacionConImpulso()
 
     medicion.graficarCorrelacion()
-    medicion.graficarTemporal(limiteInf,limiteSup)
+   
+    axinsUbicacion = [0.05, 0.05, 0.6, 0.4]
+    axinsKargs = {"xlim": (x_limiteInf, x_limiteSup),
+            "xticklabels": [], 
+            "yticklabels": []}
+    medicion.graficarTemporal(axinsUbicacion, axinsKargs)

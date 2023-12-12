@@ -3,8 +3,8 @@ import numpy as np
 
 class Correlacion:
     def __init__(self,señal1, señal2) -> None:
-        self.Correlacion = []
-        self.Lags = []
+        self.correlacion = []
+        self.lags = []
         
         self.correlacion = signal.correlate( señal1, señal2 )
         self.correlacion /= np.max(self.correlacion)

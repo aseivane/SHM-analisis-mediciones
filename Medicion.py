@@ -1,7 +1,10 @@
 from Nodo import Nodo
 import os
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
+from datetime import datetime, timedelta
+
 
 
 
@@ -31,6 +34,16 @@ class Medicion:
         self.cantNodos = len(self.listaNodos)
 
         self.largoMedicion = self.cantidadArchivos() * self.muestrasPorArchivo
+
+        if self.largoMedicion <= self.muestrasPorArchivo :
+            self.arrayTiempo = np.arange(0, self.largoMedicion/self.muestrasPorArchivo + 0.5, 0.5)
+        elif (self.largoMedicion / self.muestrasPorArchivo) <= 10 :
+            self.arrayTiempo = np.arange(0, self.largoMedicion/self.muestrasPorArchivo + 1, 1)
+        else :
+            self.arrayTiempo = np.arange(0, self.largoMedicion/self.muestrasPorArchivo + 2, 2)
+        #self.arrayTiempo = self.arrayTiempo / self.largoMedicion
+       # print(self.arrayTiempo)
+
         
     def agregarNodos(self) -> None:
         listaCarpetaNodos = next(os.walk(self.carpetaMedicion))[1]
@@ -42,9 +55,15 @@ class Medicion:
     def cantidadArchivos(self) -> int:
         
         cantidad = 0
+        indice = 0
         # Iterate directory
         dirList = os.listdir(self.carpetaMedicion)
         nodo1 = os.path.join(self.carpetaMedicion, dirList[0])
+        while os.path.isfile(nodo1) and indice < len(dirList):
+            indice += 1
+            nodo1 = os.path.join(self.carpetaMedicion, dirList[indice])
+
+
         dirList = os.listdir(nodo1)
         for archivo in dirList:
             # check if current path is a file
@@ -84,67 +103,56 @@ class Medicion:
 
             listaDeltas = np.array(listaDeltas)
             listaDeltas = listaDeltas[listaDeltas >= 0]
-            axHist.hist(listaDeltas,bins=[0, 1, 2, 3])
+            axHist.hist(listaDeltas)
+            axHist.set_xticks([0, 1, 2, 3])
+            axHist.set_xlabel("Distancia entre muestras")
+            axHist.grid(True)
 
-        def graficoTemporal(ax_nodos, ax_corr, ax_lag):
-            ax_nodos.set_title('Nodos')
-            ax_corr.set_title('Correlacion')
-            ax_lag.set_title('Lag')
+        def graficoTemporal(ax_nodos, ax_lag):
+            ax_nodos.set_title('Temporal')
+            ax_lag.set_title('Correlacion')
 
             for nodo in self.listaNodos: 
-                ax_nodos.plot(nodo.accelerationX, label= nodo.nodo)
+                tiempo_en_minutos = np.arange(len(nodo.accelerationX)) / 500 / 60.0 
+
+                ax_nodos.plot(tiempo_en_minutos, nodo.accelerationX, label= nodo.nodo)
                 for key in nodo.correlaciones.keys():
 
                     correlacionActual = nodo.correlaciones[key]
-
-                    ax_corr.plot(correlacionActual.correlacion, 
-                                label=nodo.nodo+'-'+key)
                     
-                    ax_lag.plot(correlacionActual.lags, 
+                    ax_lag.plot( correlacionActual.lags/ 500 / 60.0 , 
                                 correlacionActual.correlacion,
                                 label=nodo.nodo+'-'+key)
                     
-                    ax_lag.plot(correlacionActual.lags[correlacionActual.localMaxs],
+                    ax_lag.plot( correlacionActual.lags[correlacionActual.localMaxs]/ 500 / 60.0 ,
                                 correlacionActual.correlacion[correlacionActual.localMaxs], 'o')
 
 
-            ax_nodos.legend()
-            ax_corr.legend()
-            ax_lag.legend()
+            ax_nodos.legend(loc='upper right')
+            ax_nodos.set_ylabel("Aceleración [m/s^2]")
+            ax_lag.legend(loc='lower right')
+            ax_lag.set_xlabel("Tiempo [min]")
+            xlabels = [f'{x:}' for x in self.arrayTiempo]
+            ax_lag.set_xticks(self.arrayTiempo, labels=xlabels)
+            ax_lag.grid(True)
 
-        fig, ( ax_nodos, ax_corr, ax_lag) = plt.subplots(3, 1, sharex=True)
-        fig.tight_layout()
+        fig, ( ax_nodos, ax_lag) = plt.subplots(2, 1, figsize =(8, 6),sharex=True)
+        #fig.tight_layout()
 
-        graficoTemporal(ax_nodos, ax_corr, ax_lag)
+        graficoTemporal(ax_nodos, ax_lag)
 
-        histFig, axHist = plt.subplots(figsize =(8, 6))
+        histFig, axHist = plt.subplots(figsize =(3, 5))
         histograma(axHist)
   
         plt.show()
 
-    def graficarTemporal(self,limiteInf, limiteSup):
-        #from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
-        #from mpl_toolkits.axes_grid1.inset_locator import mark_inset
-        def referenciaMuyChica() -> bool:
-            anchoRectangulo = limiteSup - limiteInf
-            anchoMinimo = 0.5 * self.largoMedicion
-            print(anchoMinimo)
-
-            if anchoRectangulo < anchoMinimo:
-                return True
-            
-            return False
+    def graficarTemporal(self, axinsUbicacion, axinsKargs):
 
         fig, ( ax_t) = plt.subplots(figsize=[8,6])
         ax_t.set_title('Respuesta temporal')
-        #axins = zoomed_inset_axes([10000, 4, 15000, 8], 6) # zoom = 6
-        
-        #if referenciaMuyChica():
-        #    limiteSup = limiteInf + 0.1 * self.largoMedicion
 
-        axins = ax_t.inset_axes(
-            [0.52, 0.55, 0.6, 0.4],
-            xlim=(limiteInf, limiteSup), xticklabels=[], yticklabels=[])
+        
+        axins = ax_t.inset_axes(axinsUbicacion, **axinsKargs )
         
         axins.grid(True)
 
@@ -152,11 +160,17 @@ class Medicion:
 
 
         for nodo in self.listaNodos: 
-            ax_t.plot(nodo.accelerationX, label= nodo.nodo)
-            axins.plot(nodo.accelerationX)
+            tiempo_en_minutos = np.arange(len(nodo.accelerationX)) / 500 / 60.0
+
+            ax_t.plot( tiempo_en_minutos, nodo.accelerationX, label= nodo.nodo)
+            axins.plot( tiempo_en_minutos, nodo.accelerationX)
 
         ax_t.indicate_inset_zoom(axins, edgecolor="black")
 
         ax_t.legend(loc='upper left')
+        ax_t.set_xlabel("Tiempo [min]")
+        ax_t.set_ylabel("Aceleración [m/s^2]")
+        xlabels = [f'{x:}' for x in self.arrayTiempo]
+        ax_t.set_xticks(self.arrayTiempo, labels=xlabels)
 
         plt.show()
