@@ -152,20 +152,20 @@ class Medicion:
         ax_t.set_title('Respuesta temporal')
 
         
-        axins = ax_t.inset_axes(axinsUbicacion, **axinsKargs )
+        #axins = ax_t.inset_axes(axinsUbicacion, **axinsKargs )
         
-        axins.grid(True)
+        #axins.grid(True)
 
         ax_t.set_ylim(bottom=-30,top = 50)
 
 
         for nodo in self.listaNodos: 
-            tiempo_en_minutos = np.arange(len(nodo.accelerationX)) / 500 / 60.0
+            tiempo_en_minutos = np.arange(len(nodo.accelerationZ)) / 500 / 60.0
 
-            ax_t.plot( tiempo_en_minutos, nodo.accelerationX, label= nodo.nodo)
-            axins.plot( tiempo_en_minutos, nodo.accelerationX)
+            ax_t.plot( tiempo_en_minutos, nodo.accelerationZ, label= nodo.nodo)
+            #axins.plot( tiempo_en_minutos, nodo.accelerationZ)
 
-        ax_t.indicate_inset_zoom(axins, edgecolor="black")
+        #ax_t.indicate_inset_zoom(axins, edgecolor="black")
 
         ax_t.legend(loc='upper left')
         ax_t.set_xlabel("Tiempo [min]")
